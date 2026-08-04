@@ -84,6 +84,30 @@
             min-height: 700px;
         }
 
+        /* Top-Right Minimalist Logout (Close Symbol) */
+        .btn-top-logout {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            opacity: 0.35; /* Semi-transparan saat idle */
+            z-index: 9999;
+            transition: opacity 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-top-logout:hover {
+            opacity: 1;
+            color: #ff3b30; /* Berubah jadi merah saat dihover */
+            transform: scale(1.1);
+        }
+
         /* Top Controls Wrapper */
         .top-controls {
             width: 100%;
@@ -141,21 +165,7 @@
             fill: var(--bg-color);
         }
 
-        /* Logout & Weekly Audit Button style */
-        .top-icon-btn {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--muted-color);
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .top-icon-btn:hover {
-            color: var(--text-color);
-            background: var(--border-color);
-        }
-
+        /* Weekly Audit Button style */
         .weekly-audit-dot {
             background: var(--muted-color);
             opacity: 0.4;
@@ -584,12 +594,25 @@
             .calendar-card {
                 top: calc(50% + 31vh) !important;
             }
+
+            .btn-top-logout {
+                top: 15px;
+                right: 15px;
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="app-container">
+    <!-- Tombol Close Super Minimalis di Pojok Kanan Atas sebagai Logout / Auth Action -->
+    <button class="btn-top-logout" onclick="handleAuthAction()" id="authButtonIcon" title="logout / login">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </button>
+
     <!-- Top Controls -->
     <div class="top-controls" id="topControls">
         <div class="top-left-controls">
@@ -598,7 +621,6 @@
                     <svg viewBox="0 0 24 24" id="switchIcon"></svg>
                 </div>
             </div>
-            <button class="top-icon-btn" onclick="handleAuthAction()" id="authButtonText">login</button>
         </div>
         <button class="weekly-audit-dot" onclick="openWeeklyAudit()" title="weekly audit"></button>
     </div>
@@ -744,7 +766,6 @@
             openLoginModal();
         } else {
             currentUser = session.user;
-            document.getElementById('authButtonText').innerText = 'logout';
             await fetchUserEntries();
         }
     });
@@ -775,7 +796,6 @@
             showToast(error.message);
         } else {
             currentUser = data.user;
-            document.getElementById('authButtonText').innerText = 'logout';
             closeLoginModal();
             showToast('login success!');
             await fetchUserEntries();
@@ -787,7 +807,6 @@
             await supabaseClient.auth.signOut();
             currentUser = null;
             journalEntries = {};
-            document.getElementById('authButtonText').innerText = 'login';
             renderCalendar();
             document.getElementById('mainTextarea').value = '';
             updateCounters('');
@@ -1066,7 +1085,6 @@
                 return;
             }
         } else {
-            // Hapus baris di Supabase jika kosong
             await supabaseClient
                 .from('journals')
                 .delete()
