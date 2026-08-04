@@ -742,24 +742,38 @@
     </div>
 </div>
 
-<!-- Date Entry Edit Modal -->
+<!-- Date Entry Edit Modal (Diadaptasi dari placeholder/editor utama) -->
 <div class="modal-overlay" id="editModal" onclick="closeModalOnOverlay(event, 'editModal')">
-    <div class="modal-card">
-        <div class="modal-header">
+    <div class="modal-card" style="max-width: 320px; width: 85vw; padding: 0; overflow: hidden; background: var(--card-bg);">
+        <div class="modal-header" style="padding: 12px 16px; margin-bottom: 0; border-bottom: 1px solid var(--border-color);">
             <span class="modal-title" id="editModalDate">edit entry</span>
             <button class="btn-close" onclick="closeModal('editModal')">×</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="padding: 16px; position: relative; height: 180px; overflow: hidden; display: flex; flex-direction: column;">
             <textarea 
                 class="journal-textarea" 
                 id="editModalTextarea" 
-                placeholder="write entry for this date..."
-                style="height: 90px; text-align: left; font-size: 0.85rem;"
+                placeholder="what is on your mind for this date? write freely..."
+                oninput="handleEditModalInput()"
+                style="text-align: center; font-size: 1.05rem; height: 100%; padding-bottom: 30px;"
             ></textarea>
-        </div>
-        <div style="margin-top: 8px; display: flex; justify-content: flex-end; gap: 6px;">
-            <button class="btn-action-sm" style="background: transparent; color: var(--text-color); border: 1px solid var(--border-color);" onclick="closeModal('editModal')">cancel</button>
-            <button class="btn-action-sm" onclick="saveModalEdit()">save</button>
+            
+            <!-- Gradient Overlay Footer Effect -->
+            <div style="content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: linear-gradient(to top, var(--card-bg), transparent); pointer-events: none;"></div>
+
+            <!-- Footer Left: Counter -->
+            <div class="floating-footer-left" id="editCounterDisplay" style="bottom: 14px; left: 16px;">0 words · 0 chars</div>
+
+            <!-- Footer Right: Clear & Submit Buttons -->
+            <div class="floating-footer-right" style="bottom: 12px; right: 14px; gap: 8px;">
+                <button class="btn-clear-inline" onclick="clearEditModalJournal()" title="clear text">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <button class="btn-circle-submit" onclick="saveModalEdit()" title="submit"></button>
+            </div>
         </div>
     </div>
 </div>
@@ -980,7 +994,6 @@
 
         const todayStr = getFormattedDateStr(new Date());
 
-        // Aturan: Deny jika submit 2x hari ini (sudah ada entri hari ini), harus masuk tanggal di kalender untuk edit
         if (journalEntries[todayStr]) {
             showToast('already submitted today. use calendar to edit.');
             return;
@@ -1008,7 +1021,6 @@
             console.error(error);
         } else {
             await fetchUserEntries();
-            // Auto delete/reset text pada placeholder utama setelah berhasil submit
             textarea.value = '';
             updateCounters('');
             showToast('submitted & saved online!');
@@ -1120,10 +1132,31 @@
         document.getElementById('editModalDate').innerText = `edit: ${formattedTitle}`;
         const textarea = document.getElementById('editModalTextarea');
         
-        textarea.value = journalEntries[dateStr] ? journalEntries[dateStr].content : '';
-        textarea.oninput = (e) => { e.target.value = e.target.value.toLowerCase(); };
+        const existingContent = journalEntries[dateStr] ? journalEntries[dateStr].content : '';
+        textarea.value = existingContent;
+        updateEditCounters(existingContent);
 
         openModal('editModal');
+    }
+
+    function handleEditModalInput() {
+        const textarea = document.getElementById('editModalTextarea');
+        const val = textarea.value.toLowerCase();
+        textarea.value = val;
+        updateEditCounters(val);
+    }
+
+    function updateEditCounters(text) {
+        const chars = text.length;
+        const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+        document.getElementById('editCounterDisplay').innerText = `${words} words · ${chars} chars`;
+    }
+
+    function clearEditModalJournal() {
+        const textarea = document.getElementById('editModalTextarea');
+        textarea.value = '';
+        updateEditCounters('');
+        showToast('text cleared');
     }
 
     async function saveModalEdit() {
