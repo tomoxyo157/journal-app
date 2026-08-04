@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>journal</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="216.png">
+
     <!-- PWA Manifest & Icons -->
-    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22daily%20journal%22%2C%22short_name%22%3A%22journal%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f9f8f6%22%2C%22theme_color%22%3A%22%23f9f8f6%22%7D">
-    <meta name="theme-color" content="#f9f8f6" id="theme-color-meta">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22daily%20journal%22%2C%22short_name%22%3A%22journal%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f1ea%22%2C%22theme_color%22%3A%22%23f4f1ea%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22215.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+    <meta name="theme-color" content="#f4f1ea" id="theme-color-meta">
 
     <!-- EB Garamond Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,27 +38,37 @@
         }
 
         :root {
-            --bg-color: #f9f8f6;
-            --card-bg: #ffffff;
-            --border-color: #eae7df;
-            --text-color: #2b2927;
-            --muted-color: #9c978e;
-            --accent-color: #555047;
+            --bg-color: #f4f1ea;
+            --card-bg: #fbfbf9;
+            --border-color: #e3ded4;
+            --text-color: #232220;
+            --muted-color: #8c867b;
+            --accent-color: #4a453e;
             --dim-opacity: 0.15;
-            --shadow-float: 0 12px 40px rgba(0,0,0,0.03);
+            --shadow-float: 0 12px 40px rgba(0,0,0,0.04);
             --shadow-md: 0 8px 24px rgba(0,0,0,0.06);
         }
 
         body.dark-mode {
-            --bg-color: #121212;
-            --card-bg: #1a1a1a;
-            --border-color: #262626;
-            --text-color: #e1ded8;
-            --muted-color: #6e6b63;
-            --accent-color: #a39e93;
+            --bg-color: #141413;
+            --card-bg: #1c1c1a;
+            --border-color: #2a2a27;
+            --text-color: #e3ded8;
+            --muted-color: #737068;
+            --accent-color: #b5b0a4;
             --dim-opacity: 0.12;
-            --shadow-float: 0 12px 40px rgba(0,0,0,0.3);
-            --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+            --shadow-float: 0 12px 40px rgba(0,0,0,0.4);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        /* Grainy Abstract Overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 999;
         }
 
         body {
@@ -97,14 +110,14 @@
             align-items: center;
             justify-content: center;
             color: var(--text-color);
-            opacity: 0.35; /* Semi-transparan saat idle */
-            z-index: 9999;
+            opacity: 0.35;
+            z-index: 10000;
             transition: opacity 0.2s ease, color 0.2s ease, transform 0.2s ease;
         }
 
         .btn-top-logout:hover {
             opacity: 1;
-            color: #ff3b30; /* Berubah jadi merah saat dihover */
+            color: #ff3b30;
             transform: scale(1.1);
         }
 
@@ -198,6 +211,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             overflow: hidden;
+            z-index: 2;
         }
 
         .journal-textarea {
@@ -274,6 +288,7 @@
             transform: translateX(-50%);
             zoom: 0.8;
             opacity: 0.55;
+            z-index: 2;
         }
 
         .calendar-card:hover {
@@ -406,7 +421,7 @@
             justify-content: center;
             align-items: center;
             padding: 16px;
-            z-index: 1000;
+            z-index: 10000;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.25s ease, visibility 0.25s ease;
@@ -561,7 +576,7 @@
             font-size: 0.7rem;
             opacity: 0;
             transition: all 0.2s ease;
-            z-index: 2000;
+            z-index: 20000;
         }
 
         .toast-msg.show {
@@ -851,11 +866,11 @@
         if (savedTheme === 'dark') {
             document.body.classList.add('dark-mode');
             document.getElementById('switchIcon').innerHTML = moonIconSVG;
-            document.getElementById('theme-color-meta').setAttribute('content', '#121212');
+            document.getElementById('theme-color-meta').setAttribute('content', '#141413');
         } else {
             document.body.classList.remove('dark-mode');
             document.getElementById('switchIcon').innerHTML = sunIconSVG;
-            document.getElementById('theme-color-meta').setAttribute('content', '#f9f8f6');
+            document.getElementById('theme-color-meta').setAttribute('content', '#f4f1ea');
         }
     }
 
@@ -864,7 +879,7 @@
         const isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem('journal_theme', isDark ? 'dark' : 'day');
         document.getElementById('switchIcon').innerHTML = isDark ? moonIconSVG : sunIconSVG;
-        document.getElementById('theme-color-meta').setAttribute('content', isDark ? '#121212' : '#f9f8f6');
+        document.getElementById('theme-color-meta').setAttribute('content', isDark ? '#141413' : '#f4f1ea');
     }
 
     function initKeyboardEscape() {
@@ -1196,7 +1211,7 @@
         const [yearStr, weekPart] = val.split('-W');
         const weekNum = parseInt(weekPart, 10);
         const yearNum = parseInt(yearStr, 10);
-        const dates = getDateRangeOfWeek(weekNum, yearNum);
+        const dates = getDateRangeOfWeek(weekNum, weekNum ? weekNum : 1, yearNum);
 
         let summaryText = `weekly audit summary - week ${weekNum} (${yearNum})\n\n`;
 
