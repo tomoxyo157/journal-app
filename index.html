@@ -252,6 +252,9 @@
             bottom: 10px;
             right: 14px;
             z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-circle-submit {
@@ -270,6 +273,26 @@
         .btn-circle-submit:hover {
             opacity: 0.85;
             transform: scale(1.15);
+        }
+
+        /* Clear Button styled exactly like logout/close symbol */
+        .btn-clear-inline {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            opacity: 0.35;
+            transition: opacity 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-clear-inline:hover {
+            opacity: 1;
+            color: #ff3b30;
+            transform: scale(1.1);
         }
 
         /* Mini Calendar Widget */
@@ -651,6 +674,13 @@
 
         <div class="floating-footer-left" id="counterDisplay">0 words · 0 chars</div>
         <div class="floating-footer-right">
+            <!-- Clear Button (styled like logout/close symbol) -->
+            <button class="btn-clear-inline" onclick="clearCurrentJournal()" title="clear text">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
             <button class="btn-circle-submit" onclick="saveCurrentJournal()" title="submit"></button>
         </div>
     </main>
@@ -935,15 +965,29 @@
         document.getElementById('counterDisplay').innerText = `${words} words · ${chars} chars`;
     }
 
+    function clearCurrentJournal() {
+        const textarea = document.getElementById('mainTextarea');
+        textarea.value = '';
+        updateCounters('');
+        showToast('text cleared');
+    }
+
     async function saveCurrentJournal() {
         if (!currentUser) {
             openLoginModal();
             return;
         }
 
+        const todayStr = getFormattedDateStr(new Date());
+
+        // Aturan: Deny jika submit 2x hari ini (sudah ada entri hari ini), harus masuk tanggal di kalender untuk edit
+        if (journalEntries[todayStr]) {
+            showToast('already submitted today. use calendar to edit.');
+            return;
+        }
+
         const textarea = document.getElementById('mainTextarea');
         const content = textarea.value.trim().toLowerCase();
-        const todayStr = getFormattedDateStr(new Date());
 
         if (!content) {
             showToast('entry is empty');
@@ -964,7 +1008,10 @@
             console.error(error);
         } else {
             await fetchUserEntries();
-            showToast('journal saved online!');
+            // Auto delete/reset text pada placeholder utama setelah berhasil submit
+            textarea.value = '';
+            updateCounters('');
+            showToast('submitted & saved online!');
         }
     }
 
@@ -1213,15 +1260,22 @@
         const yearNum = parseInt(yearStr, 10);
         const dates = getDateRangeOfWeek(weekNum, weekNum ? weekNum : 1, yearNum);
 
-        let summaryText = `weekly audit summary - week ${weekNum} (${yearNum})\n\n`;
+        let summaryText = `weekly audit summary - week ${weekNum} (${yearNum})
+
+`;
 
         dates.forEach(d => {
             const dateStr = getFormattedDateStr(d);
             const formattedDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toLowerCase();
             const entry = journalEntries[dateStr];
 
-            summaryText += `--- ${formattedDate} ---\n`;
-            summaryText += entry ? `${entry.content}\n\n` : `(no entry)\n\n`;
+            summaryText += `--- ${formattedDate} ---
+`;
+            summaryText += entry ? `${entry.content}
+
+` : `(no entry)
+
+`;
         });
 
         navigator.clipboard.writeText(summaryText.trim()).then(() => {
