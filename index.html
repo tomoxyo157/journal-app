@@ -226,24 +226,15 @@
             line-height: 1.4;
             text-align: center;
             
-            /* Autohide Scroll: default tersembunyi, muncul via kelas aktif */
-            overflow-y: hidden;
-        }
-
-        .journal-textarea.scrolling {
+            /* Tanpa Scrollbar sama sekali */
             overflow-y: auto;
+            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
         }
 
-        /* Custom Scrollbar Styling */
+        /* Menyembunyikan scrollbar untuk Chrome, Safari, dan Opera */
         .journal-textarea::-webkit-scrollbar {
-            width: 4px;
-        }
-        .journal-textarea::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .journal-textarea::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
+            display: none;
         }
 
         .editor-card::after {
@@ -687,7 +678,6 @@
             id="mainTextarea" 
             placeholder="what is on your mind today? write freely..."
             oninput="handleWritingInput()"
-            onscroll="handleTextAreaScroll()"
         ></textarea>
 
         <div class="floating-footer-left" id="counterDisplay">0 words · 0 chars</div>
@@ -828,7 +818,6 @@
     let activeEditModalDate = null;
     let currentUser = null;
     let journalEntries = {};
-    let scrollTimer = null; // Timer untuk autohide scrollbar
 
     const sunIconSVG = `<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1z"/>`;
     const moonIconSVG = `<path d="M12.3 2c.43 0 .77.35.73.78-.34 4.24 2.12 8.16 6.02 9.69.39.15.58.58.42.97-1.8 4.36-6.12 7.16-10.87 7.05-5.69-.13-10.23-4.78-10.2-10.48.03-5.22 4.02-9.58 9.22-9.98.22-.02.46-.03.68-.03z"/>`;
@@ -865,17 +854,6 @@
         if (error) {
             console.error('error auto-deleting old entries:', error);
         }
-    }
-
-    // Fungsi Autohide Scroll: Scrollbar muncul saat discroll, lalu hilang otomatis setelah 1,5 detik
-    function handleTextAreaScroll() {
-        const textarea = document.getElementById('mainTextarea');
-        textarea.classList.add('scrolling');
-
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(() => {
-            textarea.classList.remove('scrolling');
-        }, 1500);
     }
 
     function openLoginModal() {
