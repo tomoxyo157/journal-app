@@ -225,8 +225,26 @@
             font-size: 1.1rem;
             line-height: 1.4;
             text-align: center;
+            
+            /* Autohide Scroll for Text Overflow */
+            overflow-y: hidden;
+        }
+
+        .journal-textarea:hover,
+        .journal-textarea:focus {
             overflow-y: auto;
-            padding-bottom: 26px;
+        }
+
+        /* Custom Scrollbar Styling for Autohide Smoothness */
+        .journal-textarea::-webkit-scrollbar {
+            width: 4px;
+        }
+        .journal-textarea::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .journal-textarea::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
         }
 
         .editor-card::after {
@@ -244,14 +262,14 @@
             left: 18px;
             font-size: 0.7rem;
             color: var(--muted-color);
-            z-index: 2;
+            z-index: 3;
         }
 
         .floating-footer-right {
             position: absolute;
             bottom: 10px;
             right: 14px;
-            z-index: 2;
+            z-index: 3;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -755,7 +773,7 @@
                 id="editModalTextarea" 
                 placeholder="what is on your mind for this date? write freely..."
                 oninput="handleEditModalInput()"
-                style="text-align: center; font-size: 1.05rem; height: 100%; padding-bottom: 30px;"
+                style="text-align: center; font-size: 1.05rem; height: 100%;"
             ></textarea>
             
             <!-- Gradient Overlay Footer Effect -->
@@ -825,9 +843,29 @@
             openLoginModal();
         } else {
             currentUser = session.user;
+            await autoDeleteOldEntries(); // Autodelete jurnal > 3 bulan
             await fetchUserEntries();
         }
     });
+
+    // Fitur Autodelete History (Menghapus entry yang umurnya lebih dari 3 bulan / 90 hari)
+    async function autoDeleteOldEntries() {
+        if (!currentUser) return;
+        
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const limitDateStr = getFormattedDateStr(threeMonthsAgo);
+
+        const { error } = await supabaseClient
+            .from('journals')
+            .delete()
+            .eq('user_id', currentUser.id)
+            .lt('entry_date', limitDateStr);
+
+        if (error) {
+            console.error('error auto-deleting old entries:', error);
+        }
+    }
 
     function openLoginModal() {
         const modal = document.getElementById('loginModal');
@@ -857,6 +895,7 @@
             currentUser = data.user;
             closeLoginModal();
             showToast('login success!');
+            await autoDeleteOldEntries(); // Jalankan autodelete setelah login
             await fetchUserEntries();
         }
     }
