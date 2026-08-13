@@ -233,6 +233,7 @@
             font-size: 1.1rem;
             line-height: 1.4;
             text-align: center;
+            padding-bottom: 48px; /* Padding bawah agar teks tidak tertutup gradien & toolbar */
             
             /* Tanpa Scrollbar sama sekali di PC & Mobile */
             overflow-y: auto;
@@ -694,14 +695,14 @@
 
         <div class="floating-footer-left" id="counterDisplay">0 words · 0 chars</div>
         <div class="floating-footer-right">
-            <!-- Clear Button (styled like logout/close symbol) -->
+            <!-- Clear Button -->
             <button class="btn-clear-inline" onclick="clearCurrentJournal()" title="clear text">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             </button>
-            <button class="btn-circle-submit" onclick="saveCurrentJournal()" title="submit"></button>
+            <button class="btn-circle-submit" onclick="saveCurrentJournal()" title="submit / update"></button>
         </div>
     </main>
 
@@ -837,7 +838,7 @@
     window.addEventListener('DOMContentLoaded', async () => {
         initTheme();
         initEditorFocusEvents();
-        initKeyboardEscape();
+        initKeyboardShortcuts();
 
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) {
@@ -966,7 +967,7 @@
         document.getElementById('theme-color-meta').setAttribute('content', isDark ? '#141413' : '#f4f1ea');
     }
 
-    function initKeyboardEscape() {
+    function initKeyboardShortcuts() {
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal('readModal');
@@ -974,6 +975,18 @@
                 closeModal('weeklyModal');
             }
         });
+
+        // Fitur Shortcut pada Edit Modal: Enter / Escape untuk keluar tanpa menyimpan
+        const editArea = document.getElementById('editModalTextarea');
+        if (editArea) {
+            editArea.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey)) {
+                    e.preventDefault();
+                    closeModal('editModal');
+                    showToast('exited edit mode');
+                }
+            });
+        }
     }
 
     function initEditorFocusEvents() {
@@ -1006,11 +1019,10 @@
         updateCounters(textarea.value);
     }
 
+    // Penanganan Input tanpa menimpa textarea.value agar Ctrl+Z (Undo) tetap bekerja mulus
     function handleWritingInput() {
         const textarea = document.getElementById('mainTextarea');
-        const val = textarea.value.toLowerCase();
-        textarea.value = val;
-        updateCounters(val);
+        updateCounters(textarea.value);
     }
 
     function updateCounters(text) {
@@ -1026,6 +1038,7 @@
         showToast('text cleared');
     }
 
+    // Tombol Submit Utama yang dapat digunakan berulang kali (Update) untuk hari berjalan
     async function saveCurrentJournal() {
         if (!currentUser) {
             openLoginModal();
@@ -1033,12 +1046,6 @@
         }
 
         const todayStr = getFormattedDateStr(new Date());
-
-        if (journalEntries[todayStr]) {
-            showToast('already submitted today. use calendar to edit.');
-            return;
-        }
-
         const textarea = document.getElementById('mainTextarea');
         const content = textarea.value.trim().toLowerCase();
 
@@ -1061,9 +1068,7 @@
             console.error(error);
         } else {
             await fetchUserEntries();
-            textarea.value = '';
-            updateCounters('');
-            showToast('submitted & saved online!');
+            showToast('journal saved & updated!');
         }
     }
 
@@ -1180,9 +1185,7 @@
 
     function handleEditModalInput() {
         const textarea = document.getElementById('editModalTextarea');
-        const val = textarea.value.toLowerCase();
-        textarea.value = val;
-        updateEditCounters(val);
+        updateEditCounters(textarea.value);
     }
 
     function updateEditCounters(text) {
