@@ -5,23 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>journal</title>
     
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="216.png">
-
-    <!-- PWA Manifest & Icons -->
     <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22daily%20journal%22%2C%22short_name%22%3A%22journal%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f1ea%22%2C%22theme_color%22%3A%22%23f4f1ea%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22215.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
     <meta name="theme-color" content="#f4f1ea" id="theme-color-meta">
 
-    <!-- EB Garamond Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
-
-    <!-- Supabase Client SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* Force Lowercase Everywhere */
         * {
             box-sizing: border-box;
             font-family: 'EB Garamond', serif !important;
@@ -32,7 +25,6 @@
         }
 
         ::placeholder {
-            text-transform: lowercase !important;
             opacity: 0.75;
             text-align: center;
         }
@@ -61,7 +53,6 @@
             --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
         }
 
-        /* Grainy Abstract Overlay */
         body::before {
             content: "";
             position: fixed;
@@ -83,14 +74,15 @@
             overflow-y: auto;
             padding: 16px;
             position: relative;
-            
-            /* Menyembunyikan scrollbar body di PC & Mobile */
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
         }
 
-        body::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
+        /* Combined Scrollbar Hiding */
+        body, .journal-textarea, .modal-body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body::-webkit-scrollbar, .journal-textarea::-webkit-scrollbar, .modal-body::-webkit-scrollbar {
+            display: none;
         }
 
         .app-container {
@@ -105,31 +97,34 @@
             min-height: 700px;
         }
 
-        /* Top-Right Minimalist Logout (Close Symbol) */
-        .btn-top-logout {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+        /* Combined Shared Styles for Minimal Icons */
+        .btn-top-logout, .btn-clear-inline {
             background: transparent;
             border: none;
             cursor: pointer;
-            padding: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--text-color);
             opacity: 0.35;
-            z-index: 10000;
             transition: opacity 0.2s ease, color 0.2s ease, transform 0.2s ease;
         }
-
-        .btn-top-logout:hover {
+        .btn-top-logout {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 6px;
+            z-index: 10000;
+        }
+        .btn-clear-inline {
+            padding: 2px;
+        }
+        .btn-top-logout:hover, .btn-clear-inline:hover {
             opacity: 1;
             color: #ff3b30;
             transform: scale(1.1);
         }
 
-        /* Top Controls Wrapper */
         .top-controls {
             width: 100%;
             max-width: 420px;
@@ -150,7 +145,6 @@
             align-items: center;
         }
 
-        /* Slider Switcher for Day/Night */
         .theme-switch {
             position: relative;
             width: 25px;
@@ -186,7 +180,6 @@
             fill: var(--bg-color);
         }
 
-        /* Weekly Audit Button style */
         .weekly-audit-dot {
             background: var(--muted-color);
             opacity: 0.4;
@@ -202,7 +195,6 @@
             transform: scale(1.2);
         }
 
-        /* Main Floating Writing Card */
         .editor-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -233,17 +225,8 @@
             font-size: 1.1rem;
             line-height: 1.4;
             text-align: center;
-            padding-bottom: 48px; /* Padding bawah agar teks tidak tertutup gradien & toolbar */
-            
-            /* Tanpa Scrollbar sama sekali di PC & Mobile */
+            padding-bottom: 48px;
             overflow-y: auto;
-            scrollbar-width: none;  /* Firefox */
-            -ms-overflow-style: none;  /* IE and Edge */
-        }
-
-        .journal-textarea::-webkit-scrollbar,
-        .modal-body::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
         }
 
         .editor-card::after {
@@ -292,27 +275,6 @@
             transform: scale(1.15);
         }
 
-        /* Clear Button styled exactly like logout/close symbol */
-        .btn-clear-inline {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 2px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-color);
-            opacity: 0.35;
-            transition: opacity 0.2s ease, color 0.2s ease, transform 0.2s ease;
-        }
-
-        .btn-clear-inline:hover {
-            opacity: 1;
-            color: #ff3b30;
-            transform: scale(1.1);
-        }
-
-        /* Mini Calendar Widget */
         .calendar-card {
             background: transparent;
             border: none;
@@ -421,9 +383,8 @@
         }
 
         @keyframes blink-dot {
-            0% { opacity: 0.2; }
+            0%, 100% { opacity: 0.2; }
             50% { opacity: 1; }
-            100% { opacity: 0.2; }
         }
 
         .day-indicator {
@@ -451,7 +412,6 @@
             pointer-events: none;
         }
 
-        /* Modals */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -523,10 +483,6 @@
             flex-direction: column;
             gap: 8px;
             padding-right: 2px;
-            
-            /* Sembunyikan scrollbar modal body di PC & Mobile */
-            -ms-overflow-style: none;
-            scrollbar-width: none;
         }
 
         .entry-content-italic {
@@ -596,7 +552,6 @@
             font-size: 0.65rem;
         }
 
-        /* Form Input khusus Modal Login */
         .auth-input {
             width: 100%;
             background: transparent;
@@ -664,7 +619,6 @@
 <body>
 
 <div class="app-container">
-    <!-- Tombol Close Super Minimalis di Pojok Kanan Atas sebagai Logout / Auth Action -->
     <button class="btn-top-logout" onclick="handleAuthAction()" id="authButtonIcon" title="logout / login">
         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -672,7 +626,6 @@
         </svg>
     </button>
 
-    <!-- Top Controls -->
     <div class="top-controls" id="topControls">
         <div class="top-left-controls">
             <div class="theme-switch" onclick="toggleTheme()" title="toggle theme">
@@ -684,7 +637,6 @@
         <button class="weekly-audit-dot" onclick="openWeeklyAudit()" title="weekly audit"></button>
     </div>
 
-    <!-- Main Floating Writing Card -->
     <main class="editor-card" id="editorCard">
         <textarea 
             class="journal-textarea" 
@@ -695,8 +647,7 @@
 
         <div class="floating-footer-left" id="counterDisplay">0 words · 0 chars</div>
         <div class="floating-footer-right">
-            <!-- Clear Button -->
-            <button class="btn-clear-inline" onclick="clearCurrentJournal()" title="clear text">
+            <button class="btn-clear-inline" onclick="clearJournal('mainTextarea', 'counterDisplay')" title="clear text">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -706,7 +657,6 @@
         </div>
     </main>
 
-    <!-- Mini Calendar Widget -->
     <div class="calendar-card" id="calendarCard">
         <div class="calendar-header">
             <div class="calendar-nav-group">
@@ -732,7 +682,6 @@
     </div>
 </div>
 
-<!-- Login Modal Window -->
 <div class="modal-overlay" id="loginModal">
     <div class="modal-card" style="max-width: 280px;">
         <div class="modal-header">
@@ -746,7 +695,6 @@
     </div>
 </div>
 
-<!-- Date Entry Modal -->
 <div class="modal-overlay" id="readModal" onclick="closeModalOnOverlay(event, 'readModal')">
     <div class="modal-card">
         <div class="modal-header">
@@ -763,7 +711,6 @@
     </div>
 </div>
 
-<!-- Date Entry Edit Modal -->
 <div class="modal-overlay" id="editModal" onclick="closeModalOnOverlay(event, 'editModal')">
     <div class="modal-card" style="max-width: 320px; width: 85vw; padding: 0; overflow: hidden; background: var(--card-bg);">
         <div class="modal-header" style="padding: 12px 16px; margin-bottom: 0; border-bottom: 1px solid var(--border-color);">
@@ -779,15 +726,12 @@
                 style="text-align: center; font-size: 1.05rem; height: 100%;"
             ></textarea>
             
-            <!-- Gradient Overlay Footer Effect -->
             <div style="content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: linear-gradient(to top, var(--card-bg), transparent); pointer-events: none;"></div>
 
-            <!-- Footer Left: Counter -->
             <div class="floating-footer-left" id="editCounterDisplay" style="bottom: 14px; left: 16px;">0 words · 0 chars</div>
 
-            <!-- Footer Right: Clear & Submit Buttons -->
             <div class="floating-footer-right" style="bottom: 12px; right: 14px; gap: 8px;">
-                <button class="btn-clear-inline" onclick="clearEditModalJournal()" title="clear text">
+                <button class="btn-clear-inline" onclick="clearJournal('editModalTextarea', 'editCounterDisplay')" title="clear text">
                     <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -799,7 +743,6 @@
     </div>
 </div>
 
-<!-- Weekly Audit Modal -->
 <div class="modal-overlay" id="weeklyModal" onclick="closeModalOnOverlay(event, 'weeklyModal')">
     <div class="modal-card">
         <div class="modal-header">
@@ -816,15 +759,16 @@
     </div>
 </div>
 
-<!-- Toast Notification -->
 <div class="toast-msg" id="toast">copied to clipboard!</div>
 
 <script>
-    // Inisialisasi Supabase menggunakan kredensial Anda
     const SUPABASE_URL = 'https://movcjscdntwckaslnumn.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vdmNqc2NkbnR3Y2thc2xudW1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwNDU3ODUsImV4cCI6MjEwMDYyMTc4NX0.rGYGREApohqwSaArGr4DtZXeuUJ0OUE7QeOyNjpswv8';
     
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // DOM helper for size reduction
+    const $ = id => document.getElementById(id);
 
     let currentDate = new Date();
     let selectedDateStr = getFormattedDateStr(new Date());
@@ -850,45 +794,37 @@
         }
     });
 
-    // Fitur Autodelete History (Jurnal > 3 Bulan otomatis dihapus saat login)
     async function autoDeleteOldEntries() {
         if (!currentUser) return;
-        
         const threeMonthsAgo = new Date();
         threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-        const limitDateStr = getFormattedDateStr(threeMonthsAgo);
 
         const { error } = await supabaseClient
             .from('journals')
             .delete()
             .eq('user_id', currentUser.id)
-            .lt('entry_date', limitDateStr);
+            .lt('entry_date', getFormattedDateStr(threeMonthsAgo));
 
-        if (error) {
-            console.error('error auto-deleting old entries:', error);
-        }
+        if (error) console.error('error auto-deleting old entries:', error);
     }
 
     function openLoginModal() {
-        const modal = document.getElementById('loginModal');
+        const modal = $('loginModal');
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('active'), 10);
     }
 
     function closeLoginModal() {
-        const modal = document.getElementById('loginModal');
+        const modal = $('loginModal');
         modal.classList.remove('active');
         setTimeout(() => modal.style.display = 'none', 200);
     }
 
     async function submitLogin() {
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
+        const email = $('loginEmail').value.trim();
+        const password = $('loginPassword').value;
 
-        if (!email || !password) {
-            showToast('fill email & password');
-            return;
-        }
+        if (!email || !password) return showToast('fill email & password');
 
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) {
@@ -908,8 +844,8 @@
             currentUser = null;
             journalEntries = {};
             renderCalendar();
-            document.getElementById('mainTextarea').value = '';
-            updateCounters('');
+            $('mainTextarea').value = '';
+            updateCounters('', 'counterDisplay');
             openLoginModal();
         } else {
             openLoginModal();
@@ -940,44 +876,34 @@
     }
 
     function getFormattedDateStr(dateObj) {
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     function initTheme() {
-        const savedTheme = localStorage.getItem('journal_theme') || 'day';
-        if (savedTheme === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('switchIcon').innerHTML = moonIconSVG;
-            document.getElementById('theme-color-meta').setAttribute('content', '#141413');
-        } else {
-            document.body.classList.remove('dark-mode');
-            document.getElementById('switchIcon').innerHTML = sunIconSVG;
-            document.getElementById('theme-color-meta').setAttribute('content', '#f4f1ea');
-        }
+        const isDark = (localStorage.getItem('journal_theme') || 'day') === 'dark';
+        document.body.classList.toggle('dark-mode', isDark);
+        $('switchIcon').innerHTML = isDark ? moonIconSVG : sunIconSVG;
+        $('theme-color-meta').setAttribute('content', isDark ? '#141413' : '#f4f1ea');
     }
 
     function toggleTheme() {
-        document.body.classList.toggle('dark-mode');
-        const isDark = document.body.classList.contains('dark-mode');
+        const isDark = document.body.classList.toggle('dark-mode');
         localStorage.setItem('journal_theme', isDark ? 'dark' : 'day');
-        document.getElementById('switchIcon').innerHTML = isDark ? moonIconSVG : sunIconSVG;
-        document.getElementById('theme-color-meta').setAttribute('content', isDark ? '#141413' : '#f4f1ea');
+        $('switchIcon').innerHTML = isDark ? moonIconSVG : sunIconSVG;
+        $('theme-color-meta').setAttribute('content', isDark ? '#141413' : '#f4f1ea');
     }
 
     function initKeyboardShortcuts() {
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                closeModal('readModal');
-                closeModal('editModal');
-                closeModal('weeklyModal');
+                ['readModal', 'editModal', 'weeklyModal'].forEach(closeModal);
             }
         });
 
-        // Fitur Shortcut pada Edit Modal: Enter / Escape untuk keluar tanpa menyimpan
-        const editArea = document.getElementById('editModalTextarea');
+        const editArea = $('editModalTextarea');
         if (editArea) {
             editArea.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey)) {
@@ -990,100 +916,94 @@
     }
 
     function initEditorFocusEvents() {
-        const textarea = document.getElementById('mainTextarea');
-        const calendarCard = document.getElementById('calendarCard');
-        const topControls = document.getElementById('topControls');
-
-        textarea.addEventListener('focus', () => {
-            calendarCard.classList.add('dimmed');
-            topControls.classList.add('dimmed');
-        });
-
-        textarea.addEventListener('blur', () => {
-            calendarCard.classList.remove('dimmed');
-            topControls.classList.remove('dimmed');
-        });
+        const textarea = $('mainTextarea');
+        const toggleDim = add => {
+            $('calendarCard').classList.toggle('dimmed', add);
+            $('topControls').classList.toggle('dimmed', add);
+        };
+        textarea.addEventListener('focus', () => toggleDim(true));
+        textarea.addEventListener('blur', () => toggleDim(false));
     }
 
     function loadTodayOrDraft() {
         const todayStr = getFormattedDateStr(new Date());
         selectedDateStr = todayStr;
-        const textarea = document.getElementById('mainTextarea');
-
-        if (journalEntries[todayStr]) {
-            textarea.value = journalEntries[todayStr].content;
-        } else {
-            textarea.value = '';
-        }
-
-        updateCounters(textarea.value);
+        const textarea = $('mainTextarea');
+        textarea.value = journalEntries[todayStr] ? journalEntries[todayStr].content : '';
+        updateCounters(textarea.value, 'counterDisplay');
     }
 
-    // Penanganan Input tanpa menimpa textarea.value agar Ctrl+Z (Undo) tetap bekerja mulus
     function handleWritingInput() {
-        const textarea = document.getElementById('mainTextarea');
-        updateCounters(textarea.value);
+        updateCounters($('mainTextarea').value, 'counterDisplay');
     }
 
-    function updateCounters(text) {
+    function handleEditModalInput() {
+        updateCounters($('editModalTextarea').value, 'editCounterDisplay');
+    }
+
+    function updateCounters(text, targetId) {
         const chars = text.length;
-        const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
-        document.getElementById('counterDisplay').innerText = `${words} words · ${chars} chars`;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        $(targetId).innerText = `${words} words · ${chars} chars`;
     }
 
-    function clearCurrentJournal() {
-        const textarea = document.getElementById('mainTextarea');
-        textarea.value = '';
-        updateCounters('');
+    function clearJournal(textareaId, counterId) {
+        $(textareaId).value = '';
+        updateCounters('', counterId);
         showToast('text cleared');
     }
 
-    // Tombol Submit Utama yang dapat digunakan berulang kali (Update) untuk hari berjalan
-    async function saveCurrentJournal() {
-        if (!currentUser) {
-            openLoginModal();
-            return;
-        }
-
-        const todayStr = getFormattedDateStr(new Date());
-        const textarea = document.getElementById('mainTextarea');
-        const content = textarea.value.trim().toLowerCase();
-
-        if (!content) {
-            showToast('entry is empty');
-            return;
-        }
-
-        const { error } = await supabaseClient
-            .from('journals')
-            .upsert({
-                user_id: currentUser.id,
-                entry_date: todayStr,
-                content: content,
-                updated_at: new Date().toISOString()
-            }, { onConflict: ['user_id', 'entry_date'] });
-
-        if (error) {
-            showToast('failed to save online');
-            console.error(error);
+    async function saveEntryToSupabase(dateStr, content) {
+        if (!currentUser) { openLoginModal(); return false; }
+        
+        if (content) {
+            const { error } = await supabaseClient
+                .from('journals')
+                .upsert({
+                    user_id: currentUser.id,
+                    entry_date: dateStr,
+                    content: content,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: ['user_id', 'entry_date'] });
+            if (error) { showToast('save failed'); console.error(error); return false; }
         } else {
-            await fetchUserEntries();
-            showToast('journal saved & updated!');
+            await supabaseClient.from('journals').delete().eq('user_id', currentUser.id).eq('entry_date', dateStr);
+        }
+
+        await fetchUserEntries();
+        return true;
+    }
+
+    async function saveCurrentJournal() {
+        const content = $('mainTextarea').value.trim().toLowerCase();
+        if (!content) return showToast('entry is empty');
+        
+        const success = await saveEntryToSupabase(getFormattedDateStr(new Date()), content);
+        if (success) showToast('journal saved & updated!');
+    }
+
+    async function saveModalEdit() {
+        if (!activeEditModalDate || !currentUser) return;
+        const content = $('editModalTextarea').value.trim().toLowerCase();
+        
+        const success = await saveEntryToSupabase(activeEditModalDate, content);
+        if (success) {
+            if (activeEditModalDate === getFormattedDateStr(new Date())) loadTodayOrDraft();
+            closeModal('editModal');
+            showToast('entry updated online!');
         }
     }
 
     function renderCalendar() {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
+        const y = currentDate.getFullYear();
+        const m = currentDate.getMonth();
 
         const monthNames3 = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-        const shortYear = String(year).slice(-2);
-        document.getElementById('monthYearTitle').innerText = `${monthNames3[month]} '${shortYear}`;
+        $('monthYearTitle').innerText = `${monthNames3[m]} '${String(y).slice(-2)}`;
 
-        const firstDayIndex = new Date(year, month, 1).getDay();
-        const totalDays = new Date(year, month + 1, 0).getDate();
-
-        const daysContainer = document.getElementById('calendarDays');
+        const firstDayIndex = new Date(y, m, 1).getDay();
+        const totalDays = new Date(y, m + 1, 0).getDate();
+        const daysContainer = $('calendarDays');
         daysContainer.innerHTML = '';
 
         for (let i = 0; i < firstDayIndex; i++) {
@@ -1095,9 +1015,9 @@
         const realTodayStr = getFormattedDateStr(new Date());
 
         for (let day = 1; day <= totalDays; day++) {
-            const formattedMonth = String(month + 1).padStart(2, '0');
-            const formattedDay = String(day).padStart(2, '0');
-            const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
+            const formattedM = String(m + 1).padStart(2, '0');
+            const formattedD = String(day).padStart(2, '0');
+            const dateStr = `${y}-${formattedM}-${formattedD}`;
 
             const dayCell = document.createElement('div');
             dayCell.className = 'day-cell';
@@ -1107,170 +1027,75 @@
             indicator.className = 'day-indicator';
             dayCell.appendChild(indicator);
 
-            if (dateStr === realTodayStr) {
-                dayCell.classList.add('today-cell');
-            }
-
-            if (journalEntries[dateStr]) {
-                dayCell.classList.add('has-entry');
-            }
+            if (dateStr === realTodayStr) dayCell.classList.add('today-cell');
+            if (journalEntries[dateStr]) dayCell.classList.add('has-entry');
 
             dayCell.onclick = () => handleDateClick(dateStr);
             daysContainer.appendChild(dayCell);
         }
     }
 
-    function prevMonth() {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar();
-    }
-
-    function nextMonth() {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar();
-    }
-
-    function jumpToday() {
-        currentDate = new Date();
-        renderCalendar();
-    }
+    function prevMonth() { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); }
+    function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); }
+    function jumpToday() { currentDate = new Date(); renderCalendar(); }
 
     function handleDateClick(dateStr) {
         const entry = journalEntries[dateStr];
         const dateObj = new Date(dateStr + 'T00:00:00');
-        const formattedTitle = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toLowerCase();
-
-        document.getElementById('readModalDate').innerText = formattedTitle;
+        $('readModalDate').innerText = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toLowerCase();
 
         if (entry && entry.content) {
-            document.getElementById('readModalContent').innerText = `"${entry.content}"`;
-            
-            const words = entry.content.trim().split(/\s+/).length;
-            const chars = entry.content.length;
-            const created = new Date(entry.createdAt).toLocaleString('en-US').toLowerCase();
-            const modified = new Date(entry.updatedAt).toLocaleString('en-US').toLowerCase();
-
-            document.getElementById('readModalMeta').innerHTML = `
-                <span>words: ${words} · chars: ${chars}</span>
-                <span>created: ${created}</span>
-                <span>modified: ${modified}</span>
+            $('readModalContent').innerText = `"${entry.content}"`;
+            $('readModalMeta').innerHTML = `
+                <span>words: ${entry.content.trim().split(/\s+/).length} · chars: ${entry.content.length}</span>
+                <span>created: ${new Date(entry.createdAt).toLocaleString('en-US').toLowerCase()}</span>
+                <span>modified: ${new Date(entry.updatedAt).toLocaleString('en-US').toLowerCase()}</span>
             `;
         } else {
-            document.getElementById('readModalContent').innerText = "you haven't written anything for this date.";
-            document.getElementById('readModalMeta').innerHTML = "<span>no metadata available</span>";
+            $('readModalContent').innerText = "you haven't written anything for this date.";
+            $('readModalMeta').innerHTML = "<span>no metadata available</span>";
         }
 
-        document.getElementById('readModalEditBtn').onclick = () => {
-            closeModal('readModal');
-            openEditModal(dateStr);
-        };
-
+        $('readModalEditBtn').onclick = () => { closeModal('readModal'); openEditModal(dateStr); };
         openModal('readModal');
     }
 
     function openEditModal(dateStr) {
         activeEditModalDate = dateStr;
         const dateObj = new Date(dateStr + 'T00:00:00');
-        const formattedTitle = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toLowerCase();
-
-        document.getElementById('editModalDate').innerText = `edit: ${formattedTitle}`;
-        const textarea = document.getElementById('editModalTextarea');
+        $('editModalDate').innerText = `edit: ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toLowerCase()}`;
         
         const existingContent = journalEntries[dateStr] ? journalEntries[dateStr].content : '';
-        textarea.value = existingContent;
-        updateEditCounters(existingContent);
+        $('editModalTextarea').value = existingContent;
+        updateCounters(existingContent, 'editCounterDisplay');
 
         openModal('editModal');
-    }
-
-    function handleEditModalInput() {
-        const textarea = document.getElementById('editModalTextarea');
-        updateEditCounters(textarea.value);
-    }
-
-    function updateEditCounters(text) {
-        const chars = text.length;
-        const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
-        document.getElementById('editCounterDisplay').innerText = `${words} words · ${chars} chars`;
-    }
-
-    function clearEditModalJournal() {
-        const textarea = document.getElementById('editModalTextarea');
-        textarea.value = '';
-        updateEditCounters('');
-        showToast('text cleared');
-    }
-
-    async function saveModalEdit() {
-        if (!activeEditModalDate || !currentUser) return;
-
-        const textarea = document.getElementById('editModalTextarea');
-        const content = textarea.value.trim().toLowerCase();
-
-        if (content) {
-            const { error } = await supabaseClient
-                .from('journals')
-                .upsert({
-                    user_id: currentUser.id,
-                    entry_date: activeEditModalDate,
-                    content: content,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: ['user_id', 'entry_date'] });
-
-            if (error) {
-                showToast('failed to update entry');
-                return;
-            }
-        } else {
-            await supabaseClient
-                .from('journals')
-                .delete()
-                .eq('user_id', currentUser.id)
-                .eq('entry_date', activeEditModalDate);
-        }
-
-        await fetchUserEntries();
-        
-        if (activeEditModalDate === getFormattedDateStr(new Date())) {
-            loadTodayOrDraft();
-        }
-
-        closeModal('editModal');
-        showToast('entry updated online!');
     }
 
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
         d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
         const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-        return { year: d.getUTCFullYear(), week: weekNo };
+        return { year: d.getUTCFullYear(), week: Math.ceil((((d - yearStart) / 86400000) + 1)/7) };
     }
 
     function getDateRangeOfWeek(weekNo, year) {
         const simple = new Date(year, 0, 1 + (weekNo - 1) * 7);
         const dow = simple.getDay();
         const ISOweekStart = new Date(simple);
-        if (dow <= 4)
-            ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-        else
-            ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+        dow <= 4 ? ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1) : ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
         
-        const weekDates = [];
-        for (let i = 0; i < 7; i++) {
+        return Array.from({length: 7}, (_, i) => {
             const nextDay = new Date(ISOweekStart);
             nextDay.setDate(ISOweekStart.getDate() + i);
-            weekDates.push(nextDay);
-        }
-        return weekDates;
+            return nextDay;
+        });
     }
 
     function openWeeklyAudit() {
-        const selector = document.getElementById('weeklyWeekSelector');
+        const selector = $('weeklyWeekSelector');
         selector.innerHTML = '';
-
-        const today = new Date();
-        const currentW = getWeekNumber(today);
+        const currentW = getWeekNumber(new Date());
 
         for (let w = currentW.week; w >= 1; w--) {
             const dates = getDateRangeOfWeek(w, currentW.year);
@@ -1289,83 +1114,57 @@
     }
 
     function renderWeeklyAuditContent() {
-        const selector = document.getElementById('weeklyWeekSelector');
-        const val = selector.value;
+        const val = $('weeklyWeekSelector').value;
         if (!val) return;
 
         const [yearStr, weekPart] = val.split('-W');
-        const weekNum = parseInt(weekPart, 10);
-        const yearNum = parseInt(yearStr, 10);
-
-        const dates = getDateRangeOfWeek(weekNum, yearNum);
-        const bodyEl = document.getElementById('weeklyModalBody');
+        const dates = getDateRangeOfWeek(parseInt(weekPart, 10), parseInt(yearStr, 10));
+        const bodyEl = $('weeklyModalBody');
         bodyEl.innerHTML = '';
 
         dates.forEach(d => {
             const dateStr = getFormattedDateStr(d);
             const formattedDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toLowerCase();
-
             const entry = journalEntries[dateStr];
             const itemEl = document.createElement('div');
             itemEl.className = 'weekly-entry-item';
 
-            if (entry && entry.content) {
-                itemEl.innerHTML = `
-                    <div class="weekly-date">${formattedDate}</div>
-                    <div class="weekly-text">${entry.content}</div>
-                `;
-            } else {
-                itemEl.innerHTML = `
-                    <div class="weekly-date">${formattedDate}</div>
-                    <div class="weekly-text" style="color: var(--muted-color); font-style: italic;">no entry recorded.</div>
-                `;
-            }
+            itemEl.innerHTML = entry && entry.content 
+                ? `<div class="weekly-date">${formattedDate}</div><div class="weekly-text">${entry.content}</div>`
+                : `<div class="weekly-date">${formattedDate}</div><div class="weekly-text" style="color: var(--muted-color); font-style: italic;">no entry recorded.</div>`;
 
             bodyEl.appendChild(itemEl);
         });
     }
 
     function copyWeeklyAudit() {
-        const selector = document.getElementById('weeklyWeekSelector');
-        const val = selector.value;
+        const val = $('weeklyWeekSelector').value;
         if (!val) return;
 
         const [yearStr, weekPart] = val.split('-W');
         const weekNum = parseInt(weekPart, 10);
         const yearNum = parseInt(yearStr, 10);
-        const dates = getDateRangeOfWeek(weekNum, weekNum ? weekNum : 1, yearNum);
+        const dates = getDateRangeOfWeek(weekNum, yearNum);
 
-        let summaryText = `weekly audit summary - week ${weekNum} (${yearNum})
-
-`;
+        let summaryText = `weekly audit summary - week ${weekNum} (${yearNum})\n\n`;
 
         dates.forEach(d => {
-            const dateStr = getFormattedDateStr(d);
             const formattedDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toLowerCase();
-            const entry = journalEntries[dateStr];
-
-            summaryText += `--- ${formattedDate} ---
-`;
-            summaryText += entry ? `${entry.content}
-
-` : `(no entry)
-
-`;
+            const entry = journalEntries[getFormattedDateStr(d)];
+            summaryText += `--- ${formattedDate} ---\n${entry ? entry.content : '(no entry)'}\n\n`;
         });
 
-        navigator.clipboard.writeText(summaryText.trim()).then(() => {
-            showToast('summary copied to clipboard!');
-        });
+        navigator.clipboard.writeText(summaryText.trim()).then(() => showToast('summary copied to clipboard!'));
     }
 
     function openModal(id) {
-        const modal = document.getElementById(id);
+        const modal = $(id);
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('active'), 10);
     }
 
     function closeModal(id) {
-        const modal = document.getElementById(id);
+        const modal = $(id);
         modal.classList.remove('active');
         setTimeout(() => modal.style.display = 'none', 200);
     }
@@ -1375,7 +1174,7 @@
     }
 
     function showToast(msg) {
-        const toast = document.getElementById('toast');
+        const toast = $('toast');
         toast.innerText = msg.toLowerCase();
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2000);
