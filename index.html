@@ -227,6 +227,20 @@
             text-align: center;
             padding-bottom: 48px;
             overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            cursor: text;
+        }
+
+        .journal-textarea:empty:before {
+            content: attr(data-placeholder);
+            color: var(--text-color);
+            opacity: 0.75;
+        }
+
+        .journal-textarea s, .entry-content-italic s, .weekly-text s {
+            text-decoration: line-through;
+            opacity: 0.45;
         }
 
         .editor-card::after {
@@ -638,12 +652,14 @@
     </div>
 
     <main class="editor-card" id="editorCard">
-        <textarea 
+        <div 
             class="journal-textarea" 
             id="mainTextarea" 
-            placeholder="what is on your mind today? write freely..."
-            oninput="handleWritingInput()"
-        ></textarea>
+            contenteditable="true"
+            data-placeholder="what is on your mind today? write freely..."
+            oninput="handleEditorInput('mainTextarea', 'counterDisplay')"
+            onkeydown="handleEditorKeydown(event, 'mainTextarea', 'counterDisplay')"
+        ></div>
 
         <div class="floating-footer-left" id="counterDisplay">0 words · 0 chars</div>
         <div class="floating-footer-right">
@@ -718,13 +734,15 @@
             <button class="btn-close" onclick="closeModal('editModal')">×</button>
         </div>
         <div class="modal-body" style="padding: 16px; position: relative; height: 180px; overflow: hidden; display: flex; flex-direction: column;">
-            <textarea 
+            <div 
                 class="journal-textarea" 
                 id="editModalTextarea" 
-                placeholder="what is on your mind for this date? write freely..."
-                oninput="handleEditModalInput()"
+                contenteditable="true"
+                data-placeholder="what is on your mind for this date? write freely..."
+                oninput="handleEditorInput('editModalTextarea', 'editCounterDisplay')"
+                onkeydown="handleEditorKeydown(event, 'editModalTextarea', 'editCounterDisplay')"
                 style="text-align: center; font-size: 1.05rem; height: 100%;"
-            ></textarea>
+            ></div>
             
             <div style="content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: linear-gradient(to top, var(--card-bg), transparent); pointer-events: none;"></div>
 
@@ -770,6 +788,16 @@
     // DOM helper for size reduction
     const $ = id => document.getElementById(id);
 
+    // ===== tunable parameters, single source =====
+    const LOCALE = 'en-US';
+    const AUTO_DELETE_MONTHS = 3;
+    const TOAST_DURATION_MS = 2000;
+    const MODAL_OPEN_DELAY_MS = 10;
+    const MODAL_CLOSE_DELAY_MS = 200;
+
+    const fmtDate = (d, opts) => d.toLocaleDateString(LOCALE, opts).toLowerCase();
+    const fmtDateTime = d => new Date(d).toLocaleString(LOCALE).toLowerCase();
+
     let currentDate = new Date();
     let selectedDateStr = getFormattedDateStr(new Date());
     let activeEditModalDate = null;
@@ -786,7 +814,7 @@
 
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) {
-            openLoginModal();
+            openModal('loginModal');
         } else {
             currentUser = session.user;
             await autoDeleteOldEntries();
@@ -796,28 +824,16 @@
 
     async function autoDeleteOldEntries() {
         if (!currentUser) return;
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const cutoff = new Date();
+        cutoff.setMonth(cutoff.getMonth() - AUTO_DELETE_MONTHS);
 
         const { error } = await supabaseClient
             .from('journals')
             .delete()
             .eq('user_id', currentUser.id)
-            .lt('entry_date', getFormattedDateStr(threeMonthsAgo));
+            .lt('entry_date', getFormattedDateStr(cutoff));
 
         if (error) console.error('error auto-deleting old entries:', error);
-    }
-
-    function openLoginModal() {
-        const modal = $('loginModal');
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('active'), 10);
-    }
-
-    function closeLoginModal() {
-        const modal = $('loginModal');
-        modal.classList.remove('active');
-        setTimeout(() => modal.style.display = 'none', 200);
     }
 
     async function submitLogin() {
@@ -831,7 +847,7 @@
             showToast(error.message);
         } else {
             currentUser = data.user;
-            closeLoginModal();
+            closeModal('loginModal');
             showToast('login success!');
             await autoDeleteOldEntries();
             await fetchUserEntries();
@@ -844,12 +860,10 @@
             currentUser = null;
             journalEntries = {};
             renderCalendar();
-            $('mainTextarea').value = '';
+            $('mainTextarea').innerHTML = '';
             updateCounters('', 'counterDisplay');
-            openLoginModal();
-        } else {
-            openLoginModal();
         }
+        openModal('loginModal');
     }
 
     async function fetchUserEntries() {
@@ -903,16 +917,6 @@
             }
         });
 
-        const editArea = $('editModalTextarea');
-        if (editArea) {
-            editArea.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey)) {
-                    e.preventDefault();
-                    closeModal('editModal');
-                    showToast('exited edit mode');
-                }
-            });
-        }
     }
 
     function initEditorFocusEvents() {
@@ -928,18 +932,11 @@
     function loadTodayOrDraft() {
         const todayStr = getFormattedDateStr(new Date());
         selectedDateStr = todayStr;
-        const textarea = $('mainTextarea');
-        textarea.value = journalEntries[todayStr] ? journalEntries[todayStr].content : '';
-        updateCounters(textarea.value, 'counterDisplay');
+        safeSetEditorContent('mainTextarea', journalEntries[todayStr] ? journalEntries[todayStr].content : '');
+        updateEditorCounter('mainTextarea', 'counterDisplay');
     }
 
-    function handleWritingInput() {
-        updateCounters($('mainTextarea').value, 'counterDisplay');
-    }
-
-    function handleEditModalInput() {
-        updateCounters($('editModalTextarea').value, 'editCounterDisplay');
-    }
+    // ===== editor core (single source, shared by mainTextarea & editModalTextarea) =====
 
     function updateCounters(text, targetId) {
         const chars = text.length;
@@ -947,14 +944,220 @@
         $(targetId).innerText = `${words} words · ${chars} chars`;
     }
 
-    function clearJournal(textareaId, counterId) {
-        $(textareaId).value = '';
+    // walks editor DOM into plain text. marked=true keeps struck segments as ~~text~~
+    // (for plain-text exports); marked=false drops struck segments entirely (active text).
+    function extractText(root, marked) {
+        let text = '';
+        root.childNodes.forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE) text += node.textContent;
+            else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName === 'BR') text += '\n';
+                else if (node.tagName === 'S') { if (marked) text += `~~${node.textContent}~~`; }
+                else text += node.textContent;
+            }
+        });
+        return text;
+    }
+
+    function htmlToText(html, marked) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        return extractText(tmp, marked);
+    }
+
+    function updateEditorCounter(editorId, counterId) {
+        updateCounters(extractText($(editorId), false), counterId);
+    }
+
+    function handleEditorInput(editorId, counterId) {
+        normalizeEditor($(editorId));
+        updateEditorCounter(editorId, counterId);
+    }
+
+    function clearJournal(editorId, counterId) {
+        $(editorId).innerHTML = '';
         updateCounters('', counterId);
         showToast('text cleared');
     }
 
+    // legacy plain-text entries (pre-strikethrough feature) may contain literal '<'/'>'
+    // characters, so only trust markup we recognize; escape everything else. Shared by
+    // the editors and the read-only displays (read modal, weekly audit) — single source.
+    function safeContentHTML(raw) {
+        if (!raw) return '';
+        const hasKnownTags = /<\/?(s|br)\b/i.test(raw);
+        const hasAnyTag = /</.test(raw);
+        if (hasAnyTag && !hasKnownTags) {
+            const div = document.createElement('div');
+            div.textContent = raw;
+            return div.innerHTML;
+        }
+        return raw;
+    }
+
+    function safeSetEditorContent(editorId, raw) {
+        $(editorId).innerHTML = safeContentHTML(raw);
+    }
+
+    function lowercaseHTML(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT);
+        let n;
+        while (n = walker.nextNode()) n.textContent = n.textContent.toLowerCase();
+        return tmp.innerHTML;
+    }
+
+    function getEditorSaveContent(editorId) {
+        const el = $(editorId);
+        normalizeEditor(el);
+        const activeText = extractText(el, false).trim();
+        if (!activeText) return { html: '', isEmpty: true };
+        return { html: lowercaseHTML(el.innerHTML), isEmpty: false };
+    }
+
+    // merges adjacent <s> siblings so repeated backspacing doesn't leave a pile of tiny tags
+    function normalizeEditor(root) {
+        root.normalize();
+        let node = root.firstChild;
+        while (node) {
+            const next = node.nextSibling;
+            if (node.nodeType === 1 && node.tagName === 'S' && next && next.nodeType === 1 && next.tagName === 'S') {
+                node.appendChild(document.createTextNode(next.textContent));
+                next.remove();
+                continue;
+            }
+            node = next;
+        }
+    }
+
+    function placeCaret(node, atStart) {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        if (node.nodeType === Node.TEXT_NODE) {
+            range.setStart(node, atStart ? 0 : node.textContent.length);
+        } else {
+            const parent = node.parentNode;
+            const idx = Array.prototype.indexOf.call(parent.childNodes, node);
+            range.setStart(parent, atStart ? idx : idx + 1);
+        }
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+
+    function strikeRange(range) {
+        const s = document.createElement('s');
+        try {
+            range.surroundContents(s);
+        } catch (e) {
+            const frag = range.extractContents();
+            s.appendChild(frag);
+            range.insertNode(s);
+        }
+        placeCaret(s, false);
+    }
+
+    function insertLineBreak(editorEl) {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        const br = document.createElement('br');
+        range.insertNode(br);
+        placeCaret(br, false);
+    }
+
+    // backspace/delete no longer remove text — they strike it through instead.
+    // characters already struck are skipped over (can't be re-struck / removed again).
+    // 'backward' and 'forward' share identical logic mirrored by the `back` flag.
+    function strikeOneUnit(editorEl, direction) {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        const range = sel.getRangeAt(0);
+
+        if (!range.collapsed) {
+            strikeRange(range);
+            normalizeEditor(editorEl);
+            return;
+        }
+
+        const back = direction === 'backward';
+        const container = range.startContainer;
+        const offset = range.startOffset;
+
+        if (container.nodeType === Node.TEXT_NODE) {
+            const strikeParent = container.parentElement && container.parentElement.closest('s');
+            if (strikeParent) { placeCaret(strikeParent, back); return; }
+
+            const inBounds = back ? offset > 0 : offset < container.textContent.length;
+            if (inBounds) {
+                const text = container.textContent;
+                const ch = back ? text[offset - 1] : text[offset];
+                container.textContent = back
+                    ? text.slice(0, offset - 1) + text.slice(offset)
+                    : text.slice(0, offset) + text.slice(offset + 1);
+                const s = document.createElement('s');
+                s.textContent = ch;
+                container.parentNode.insertBefore(s, container.nextSibling);
+                normalizeEditor(editorEl);
+                placeCaret(s, !back);
+                return;
+            }
+        }
+
+        const neighbor = container.nodeType === Node.TEXT_NODE
+            ? (back ? container.previousSibling : container.nextSibling)
+            : container.childNodes[back ? offset - 1 : offset];
+        if (!neighbor) return;
+
+        if (neighbor.nodeType === 1 && neighbor.tagName === 'S') { placeCaret(neighbor, back); return; }
+
+        if (neighbor.nodeType === 1 && neighbor.tagName === 'BR') {
+            const s = document.createElement('s');
+            neighbor.parentNode.insertBefore(s, neighbor);
+            s.appendChild(neighbor);
+            placeCaret(s, !back);
+            return;
+        }
+
+        if (neighbor.nodeType === Node.TEXT_NODE && neighbor.textContent.length) {
+            const text = neighbor.textContent;
+            const ch = back ? text.slice(-1) : text[0];
+            neighbor.textContent = back ? text.slice(0, -1) : text.slice(1);
+            const s = document.createElement('s');
+            s.textContent = ch;
+            neighbor.parentNode.insertBefore(s, back ? neighbor.nextSibling : neighbor);
+            normalizeEditor(editorEl);
+            placeCaret(s, !back);
+        }
+    }
+
+    function handleEditorKeydown(e, editorId, counterId) {
+        const editorEl = $(editorId);
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+            e.preventDefault();
+            strikeOneUnit(editorEl, e.key === 'Backspace' ? 'backward' : 'forward');
+            updateEditorCounter(editorId, counterId);
+            return;
+        }
+        if (e.key === 'Enter') {
+            if (editorId === 'editModalTextarea' && !e.shiftKey) {
+                e.preventDefault();
+                closeModal('editModal');
+                showToast('exited edit mode');
+                return;
+            }
+            e.preventDefault();
+            insertLineBreak(editorEl);
+            updateEditorCounter(editorId, counterId);
+        }
+    }
+
+    // ===== save / load =====
+
     async function saveEntryToSupabase(dateStr, content) {
-        if (!currentUser) { openLoginModal(); return false; }
+        if (!currentUser) { openModal('loginModal'); return false; }
         
         if (content) {
             const { error } = await supabaseClient
@@ -975,18 +1178,18 @@
     }
 
     async function saveCurrentJournal() {
-        const content = $('mainTextarea').value.trim().toLowerCase();
-        if (!content) return showToast('entry is empty');
-        
-        const success = await saveEntryToSupabase(getFormattedDateStr(new Date()), content);
+        const { html, isEmpty } = getEditorSaveContent('mainTextarea');
+        if (isEmpty) return showToast('entry is empty');
+
+        const success = await saveEntryToSupabase(getFormattedDateStr(new Date()), html);
         if (success) showToast('journal saved & updated!');
     }
 
     async function saveModalEdit() {
         if (!activeEditModalDate || !currentUser) return;
-        const content = $('editModalTextarea').value.trim().toLowerCase();
-        
-        const success = await saveEntryToSupabase(activeEditModalDate, content);
+        const { html, isEmpty } = getEditorSaveContent('editModalTextarea');
+
+        const success = await saveEntryToSupabase(activeEditModalDate, isEmpty ? '' : html);
         if (success) {
             if (activeEditModalDate === getFormattedDateStr(new Date())) loadTodayOrDraft();
             closeModal('editModal');
@@ -1042,14 +1245,15 @@
     function handleDateClick(dateStr) {
         const entry = journalEntries[dateStr];
         const dateObj = new Date(dateStr + 'T00:00:00');
-        $('readModalDate').innerText = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toLowerCase();
+        $('readModalDate').innerText = fmtDate(dateObj, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
         if (entry && entry.content) {
-            $('readModalContent').innerText = `"${entry.content}"`;
+            $('readModalContent').innerHTML = `"${safeContentHTML(entry.content)}"`;
+            const activeText = htmlToText(entry.content, false).trim();
             $('readModalMeta').innerHTML = `
-                <span>words: ${entry.content.trim().split(/\s+/).length} · chars: ${entry.content.length}</span>
-                <span>created: ${new Date(entry.createdAt).toLocaleString('en-US').toLowerCase()}</span>
-                <span>modified: ${new Date(entry.updatedAt).toLocaleString('en-US').toLowerCase()}</span>
+                <span>words: ${activeText ? activeText.split(/\s+/).length : 0} · chars: ${activeText.length}</span>
+                <span>created: ${fmtDateTime(entry.createdAt)}</span>
+                <span>modified: ${fmtDateTime(entry.updatedAt)}</span>
             `;
         } else {
             $('readModalContent').innerText = "you haven't written anything for this date.";
@@ -1063,11 +1267,11 @@
     function openEditModal(dateStr) {
         activeEditModalDate = dateStr;
         const dateObj = new Date(dateStr + 'T00:00:00');
-        $('editModalDate').innerText = `edit: ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toLowerCase()}`;
+        $('editModalDate').innerText = `edit: ${fmtDate(dateObj, { weekday: 'long', month: 'short', day: 'numeric' })}`;
         
         const existingContent = journalEntries[dateStr] ? journalEntries[dateStr].content : '';
-        $('editModalTextarea').value = existingContent;
-        updateCounters(existingContent, 'editCounterDisplay');
+        safeSetEditorContent('editModalTextarea', existingContent);
+        updateEditorCounter('editModalTextarea', 'editCounterDisplay');
 
         openModal('editModal');
     }
@@ -1099,8 +1303,8 @@
 
         for (let w = currentW.week; w >= 1; w--) {
             const dates = getDateRangeOfWeek(w, currentW.year);
-            const startStr = dates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase();
-            const endStr = dates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase();
+            const startStr = fmtDate(dates[0], { month: 'short', day: 'numeric' });
+            const endStr = fmtDate(dates[6], { month: 'short', day: 'numeric' });
             
             const opt = document.createElement('option');
             opt.value = `${currentW.year}-W${w}`;
@@ -1124,13 +1328,13 @@
 
         dates.forEach(d => {
             const dateStr = getFormattedDateStr(d);
-            const formattedDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toLowerCase();
+            const formattedDate = fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' });
             const entry = journalEntries[dateStr];
             const itemEl = document.createElement('div');
             itemEl.className = 'weekly-entry-item';
 
             itemEl.innerHTML = entry && entry.content 
-                ? `<div class="weekly-date">${formattedDate}</div><div class="weekly-text">${entry.content}</div>`
+                ? `<div class="weekly-date">${formattedDate}</div><div class="weekly-text">${safeContentHTML(entry.content)}</div>`
                 : `<div class="weekly-date">${formattedDate}</div><div class="weekly-text" style="color: var(--muted-color); font-style: italic;">no entry recorded.</div>`;
 
             bodyEl.appendChild(itemEl);
@@ -1149,9 +1353,9 @@
         let summaryText = `weekly audit summary - week ${weekNum} (${yearNum})\n\n`;
 
         dates.forEach(d => {
-            const formattedDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toLowerCase();
+            const formattedDate = fmtDate(d, { weekday: 'short', month: 'short', day: 'numeric' });
             const entry = journalEntries[getFormattedDateStr(d)];
-            summaryText += `--- ${formattedDate} ---\n${entry ? entry.content : '(no entry)'}\n\n`;
+            summaryText += `--- ${formattedDate} ---\n${entry ? htmlToText(entry.content, true) : '(no entry)'}\n\n`;
         });
 
         navigator.clipboard.writeText(summaryText.trim()).then(() => showToast('summary copied to clipboard!'));
@@ -1160,13 +1364,13 @@
     function openModal(id) {
         const modal = $(id);
         modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('active'), 10);
+        setTimeout(() => modal.classList.add('active'), MODAL_OPEN_DELAY_MS);
     }
 
     function closeModal(id) {
         const modal = $(id);
         modal.classList.remove('active');
-        setTimeout(() => modal.style.display = 'none', 200);
+        setTimeout(() => modal.style.display = 'none', MODAL_CLOSE_DELAY_MS);
     }
 
     function closeModalOnOverlay(event, id) {
@@ -1177,7 +1381,7 @@
         const toast = $('toast');
         toast.innerText = msg.toLowerCase();
         toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
+        setTimeout(() => toast.classList.remove('show'), TOAST_DURATION_MS);
     }
 </script>
 
